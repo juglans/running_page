@@ -2,7 +2,7 @@ name: Run Data Sync
 
 on:
   schedule:
-    - cron: '0/5 * * * *'
+    - cron: '0 0/1 * * *'
   push:
     branches:
       - master
