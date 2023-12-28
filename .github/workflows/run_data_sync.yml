@@ -27,7 +27,7 @@ env:
   MIN_GRID_DISTANCE: 10 # change min distance here
   TITLE_GRID: Over 10km Runs # also here
   GITHUB_NAME: juglans # change to yours
-  GITHUB_EMAIL: juglana@qq.com # change to yours
+  GITHUB_EMAIL: juglans@qq.com # change to yours
 
   # IGNORE_BEFORE_SAVING: True # if you want to ignore some data before saving, set this to True
   IGNORE_START_END_RANGE: 100 # Unit meter
