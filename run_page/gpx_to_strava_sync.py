@@ -77,7 +77,8 @@ if __name__ == "__main__":
         # spider rule
         time.sleep(1)
 
-    time.sleep(10)
-    run_strava_sync(
-        options.client_id, options.client_secret, options.strava_refresh_token
-    )
+    # 暂停从gpx同步到strava的反向回写过程，导致数据重复
+    # time.sleep(10)
+    # run_strava_sync(
+    #     options.client_id, options.client_secret, options.strava_refresh_token
+    # )
