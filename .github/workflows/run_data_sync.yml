@@ -159,9 +159,9 @@ jobs:
         run: |
           python run_page/garmin_to_strava_sync.py ${{ secrets.STRAVA_CLIENT_ID }} ${{ secrets.STRAVA_CLIENT_SECRET }} ${{ secrets.STRAVA_CLIENT_REFRESH_TOKEN }}  ${{ secrets.GARMIN_EMAIL }} ${{ secrets.GARMIN_PASSWORD }}
 
-      # - name: Run sync GPX to Strava（备份数据到Strava）
-      #   run: |
-      #     python run_page/gpx_to_strava_sync.py ${{ secrets.STRAVA_CLIENT_ID }} ${{ secrets.STRAVA_CLIENT_SECRET }} ${{ secrets.STRAVA_CLIENT_REFRESH_TOKEN }}
+      - name: Run sync GPX to Strava（备份数据到Strava）
+        run: |
+          python run_page/gpx_to_strava_sync.py ${{ secrets.STRAVA_CLIENT_ID }} ${{ secrets.STRAVA_CLIENT_SECRET }} ${{ secrets.STRAVA_CLIENT_REFRESH_TOKEN }}
   
       - name: Run sync Tulipsport script
         if: env.RUN_TYPE == 'tulipsport'
