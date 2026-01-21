@@ -73,19 +73,29 @@ class Activity(Base):
 def update_or_create_activity(session, run_activity):
     created = False
     try:
-        activity = (
-            session.query(Activity).filter_by(run_id=int(run_activity.id)).first()
-        )
-        if not activity:
+        run_id = int(run_activity.id)
+        activity = session.query(Activity).filter_by(run_id=run_id).first()
+
+        if activity:
+            activity.name = run_activity.name
+            activity.distance = float(run_activity.distance)
+            activity.moving_time = run_activity.moving_time
+            activity.elapsed_time = run_activity.elapsed_time
+            activity.type = run_activity.type
+            activity.average_heartrate = run_activity.average_heartrate
+            activity.average_speed = float(run_activity.average_speed)
+            activity.summary_polyline = (
+                run_activity.map and run_activity.map.summary_polyline or ""
+            )
+            created = False
+        else:
             start_point = run_activity.start_latlng
             location_country = getattr(run_activity, "location_country", "")
-            # or China for #176 to fix
             if not location_country and start_point or location_country == "China":
                 try:
                     location_country = str(
                         g.reverse(f"{start_point.lat}, {start_point.lon}")
                     )
-                # limit (only for the first time)
                 except Exception as e:
                     try:
                         location_country = str(
@@ -95,7 +105,7 @@ def update_or_create_activity(session, run_activity):
                         pass
 
             activity = Activity(
-                run_id=run_activity.id,
+                run_id=run_id,
                 name=run_activity.name,
                 distance=run_activity.distance,
                 moving_time=run_activity.moving_time,
@@ -112,20 +122,10 @@ def update_or_create_activity(session, run_activity):
             )
             session.add(activity)
             created = True
-        else:
-            activity.name = run_activity.name
-            activity.distance = float(run_activity.distance)
-            activity.moving_time = run_activity.moving_time
-            activity.elapsed_time = run_activity.elapsed_time
-            activity.type = run_activity.type
-            activity.average_heartrate = run_activity.average_heartrate
-            activity.average_speed = float(run_activity.average_speed)
-            activity.summary_polyline = (
-                run_activity.map and run_activity.map.summary_polyline or ""
-            )
     except Exception as e:
-        print(f"something wrong with {run_activity.id}")
-        print(str(e))
+        session.rollback()
+        print(f"Error processing activity {getattr(run_activity, 'id', 'unknown')}: {e}")
+        created = False
 
     return created
 

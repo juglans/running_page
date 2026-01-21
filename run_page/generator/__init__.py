@@ -55,22 +55,31 @@ class Generator:
             last_activity = self.session.query(func.max(Activity.start_date)).scalar()
             if last_activity:
                 last_activity_date = arrow.get(last_activity)
-                last_activity_date = last_activity_date.shift(days=-7)
                 filters = {"after": last_activity_date.datetime}
             else:
                 filters = {"before": datetime.datetime.utcnow()}
 
-        for activity in self.client.get_activities(**filters):
-            if self.only_run and activity.type != "Run":
-                continue
-            if IGNORE_BEFORE_SAVING:
-                activity.summary_polyline = filter_out(activity.summary_polyline)
-            created = update_or_create_activity(self.session, activity)
-            if created:
-                sys.stdout.write("+")
-            else:
-                sys.stdout.write(".")
-            sys.stdout.flush()
+        page = 1
+        while True:
+            filters["page"] = page
+            filters["per_page"] = 100
+            activities = list(self.client.get_activities(**filters))
+            if not activities:
+                break
+            for activity in activities:
+                if self.only_run and activity.type != "Run":
+                    continue
+                if IGNORE_BEFORE_SAVING:
+                    activity.summary_polyline = filter_out(activity.summary_polyline)
+                created = update_or_create_activity(self.session, activity)
+                if created:
+                    sys.stdout.write("+")
+                else:
+                    sys.stdout.write(".")
+                sys.stdout.flush()
+            page += 1
+            if page > 200:  # Safety limit
+                break
         self.session.commit()
 
     def sync_from_data_dir(self, data_dir, file_suffix="gpx"):
