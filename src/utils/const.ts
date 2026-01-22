@@ -2,9 +2,10 @@
 const MAPBOX_TOKEN =
   'pk.eyJ1IjoieWlob25nMDYxOCIsImEiOiJja2J3M28xbG4wYzl0MzJxZm0ya2Fua2p2In0.PNKfkeQwYuyGOTT_x9BJ4Q';
 const MAP_PROVIDER = 'openstreetmap' as const; // 'mapbox' | 'openstreetmap'
-const OSM_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_TILE_URL =
+  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png';
 const OSM_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 const MUNICIPALITY_CITIES_ARR = [
   '北京市',
   '上海市',
