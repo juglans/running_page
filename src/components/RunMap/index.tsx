@@ -1,6 +1,12 @@
 import MapboxLanguage from '@mapbox/mapbox-gl-language';
 import React, { useRef, useCallback } from 'react';
-import Map, { Layer, Source, FullscreenControl, NavigationControl, MapRef } from 'react-map-gl';
+import Map, {
+  Layer,
+  Source,
+  FullscreenControl,
+  NavigationControl,
+  MapRef,
+} from 'react-map-gl';
 import useActivities from '@/hooks/useActivities';
 import {
   MAP_LAYER_LIST,
@@ -12,6 +18,7 @@ import {
   USE_DASH_LINE,
   LINE_OPACITY,
   MAP_HEIGHT,
+  MAP_PROVIDER,
 } from '@/utils/const';
 import { Coordinate, IViewState, geoJsonForMap } from '@/utils/utils';
 import RunMarker from './RunMarker';
@@ -20,6 +27,7 @@ import styles from './style.module.scss';
 import { FeatureCollection } from 'geojson';
 import { RPGeometry } from '@/static/run_countries';
 import './mapbox.css';
+import LeafletRunMap from './LeafletRunMap';
 
 interface IRunMapProps {
   title: string;
@@ -38,6 +46,19 @@ const RunMap = ({
   geoData,
   thisYear,
 }: IRunMapProps) => {
+  if (MAP_PROVIDER === 'openstreetmap') {
+    return (
+      <LeafletRunMap
+        title={title}
+        viewState={viewState}
+        setViewState={setViewState}
+        changeYear={changeYear}
+        geoData={geoData}
+        thisYear={thisYear}
+      />
+    );
+  }
+
   const { provinces } = useActivities();
   const mapRef = useRef<MapRef>();
   const mapRefCallback = useCallback(
@@ -82,9 +103,12 @@ const RunMap = ({
     [endLon, endLat] = points[points.length - 1];
   }
   let dash = USE_DASH_LINE && !isSingleRun ? [2, 2] : [2, 0];
-  const onMove = React.useCallback(({ viewState }: { viewState: IViewState }) => {
-    setViewState(viewState);
-  }, []);
+  const onMove = React.useCallback(
+    ({ viewState }: { viewState: IViewState }) => {
+      setViewState(viewState);
+    },
+    []
+  );
   const style: React.CSSProperties = {
     width: '100%',
     height: MAP_HEIGHT,
@@ -141,7 +165,11 @@ const RunMap = ({
       )}
       <span className={styles.runTitle}>{title}</span>
       <FullscreenControl style={fullscreenButton} />
-      <NavigationControl showCompass={false} position={'bottom-right'} style={{ opacity: 0.3 }} />
+      <NavigationControl
+        showCompass={false}
+        position={'bottom-right'}
+        style={{ opacity: 0.3 }}
+      />
     </Map>
   );
 };

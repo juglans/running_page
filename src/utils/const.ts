@@ -1,6 +1,10 @@
 // const
 const MAPBOX_TOKEN =
   'pk.eyJ1IjoieWlob25nMDYxOCIsImEiOiJja2J3M28xbG4wYzl0MzJxZm0ya2Fua2p2In0.PNKfkeQwYuyGOTT_x9BJ4Q';
+const MAP_PROVIDER = 'openstreetmap' as const; // 'mapbox' | 'openstreetmap'
+const OSM_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 const MUNICIPALITY_CITIES_ARR = [
   '北京市',
   '上海市',
@@ -78,6 +82,9 @@ export {
   MAPBOX_TOKEN,
   MUNICIPALITY_CITIES_ARR,
   MAP_LAYER_LIST,
+  MAP_PROVIDER,
+  OSM_TILE_URL,
+  OSM_ATTRIBUTION,
   IS_CHINESE,
   ROAD_LABEL_DISPLAY,
   INFO_MESSAGE,
