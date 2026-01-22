@@ -19,6 +19,10 @@ const data: ISiteMetadataResult = {
       name: 'About',
       url: 'https://github.com/yihong0618/running_page/blob/master/README-CN.md',
     },
+    {
+      name: 'ddr888.cc',
+      url: 'https://ddr888.cc',
+    },
   ],
 };
 
