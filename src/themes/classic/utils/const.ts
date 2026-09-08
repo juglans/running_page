@@ -229,7 +229,8 @@ export const INDOOR_COLOR = '#8899aa';
 export const MAP_TILE_VENDOR = 'mapcn';
 
 // map tiles style name, see MAP_TILE_STYLES for more details
-export const MAP_TILE_STYLE_LIGHT = 'osm-bright';
+// light: 'osm-bright' (voyager, colorful) or 'osm-liberty' (positron, minimal light gray)
+export const MAP_TILE_STYLE_LIGHT = 'osm-liberty';
 export const MAP_TILE_STYLE_DARK = 'dark-matter';
 
 // access token. you can apply a new one, it's free.
