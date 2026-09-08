@@ -37,6 +37,12 @@ SEMICIRCLE = 11930465
 
 
 class Track:
+    # Gaps between consecutive track points longer than this (seconds) are
+    # treated as pauses (GPS auto-pause / signal loss) and excluded from moving
+    # time. Normal Keep sampling is ~12-15s, so 60s is well above noise but
+    # below real breaks (pauses observed in the data run into many minutes).
+    PAUSE_GAP_SECONDS = 60
+
     def __init__(self):
         self.file_names = []
         self.polylines = []
@@ -246,6 +252,10 @@ class Track:
         for t in gpx.tracks:
             for s in t.segments:
                 moving_time += self._calc_moving_time(s.points, 10)
+        # Compute elapsed time from the ORIGINAL dense track points, before
+        # gpx.simplify() thins them out (which inflates point-to-point time
+        # gaps). Used for a stable pace = distance / total time.
+        elapsed_raw, _paused_raw = self._calc_elapsed_and_paused(gpx)
         gpx.simplify()
         if self.length == 0:
             # Indoor/treadmill runs have no track points (or identical
@@ -259,7 +269,9 @@ class Track:
                 moving_time = (
                     self.end_time - self.start_time
                 ).total_seconds()
-            self.moving_dict = self._get_moving_data(gpx, moving_time)
+            self.moving_dict = self._get_moving_data(
+                gpx, moving_time, elapsed_raw=elapsed_raw, paused_raw=paused_raw
+            )
             self.elevation_gain = 0
             self.polyline_str = ""
             self.polyline_container = []
@@ -321,7 +333,9 @@ class Track:
         self.average_heartrate = (
             sum(heart_rate_list) / len(heart_rate_list) if heart_rate_list else None
         )
-        self.moving_dict = self._get_moving_data(gpx, moving_time)
+        self.moving_dict = self._get_moving_data(
+            gpx, moving_time, elapsed_raw=elapsed_raw, paused_raw=paused_raw
+        )
         self.elevation_gain = gpx.get_uphill_downhill().uphill
         self._load_gpx_extensions_data(gpx)
 
@@ -479,18 +493,63 @@ class Track:
             )
             pass
 
+    def _calc_elapsed_and_paused(self, gpx):
+        """Return (elapsed_seconds, paused_seconds) computed from the ORIGINAL
+        dense track points (call before gpx.simplify()). Elapsed is the
+        start/end time span; paused is the sum of point-to-point gaps longer
+        than PAUSE_GAP_SECONDS (GPS auto-pause / signal loss). Pace is based on
+        elapsed (see _get_moving_data); paused is reported but not subtracted."""
+        points = [
+            p
+            for track in gpx.tracks
+            for segment in track.segments
+            for p in segment.points
+            if p.time is not None
+        ]
+        if len(points) < 2:
+            return 0, 0
+        elapsed = (points[-1].time - points[0].time).total_seconds()
+        paused = 0
+        for i in range(1, len(points)):
+            gap = (points[i].time - points[i - 1].time).total_seconds()
+            if gap > self.PAUSE_GAP_SECONDS:
+                paused += gap
+        return elapsed, paused
+
     @staticmethod
-    def _get_moving_data(gpx, moving_time):
+    def _get_moving_data(gpx, moving_time=None, elapsed_raw=None, paused_raw=None):
         moving_data = gpx.get_moving_data()
-        elapsed_time = moving_data.moving_time
-        moving_time = moving_time or elapsed_time
+        # Keep-exported GPX tracks are sparsely sampled (~12-15s between
+        # points) and frequently contain very long gaps (GPS auto-pause /
+        # signal loss, often tens of minutes). The legacy fixed-10s
+        # accumulation and gpxpy's speed-threshold moving time both misjudge
+        # these (a long gap reads as either "stopped" for the whole run or a
+        # teleport of hundreds of m/s). So use the start/end time span for
+        # elapsed and subtract the long pauses (measured on the original dense
+        # points, before simplification) for moving time.
+        if elapsed_raw is not None and elapsed_raw > 0:
+            elapsed_time = elapsed_raw
+        else:
+            start_time, end_time = gpx.get_time_bounds()
+            elapsed_time = (
+                (end_time - start_time).total_seconds()
+                if start_time and end_time
+                else moving_data.moving_time
+            )
+
+        # Moving time is taken as the full start/end span (elapsed), without
+        # subtracting long point gaps. In Keep-exported tracks those gaps are
+        # GPS dropouts / signal holes, not real pauses: distance is still the
+        # continuously accumulated track length, so subtracting the missing
+        # time breaks the pace. Using the total span keeps distance and time
+        # on the same basis and yields a realistic average pace.
+        moving_time = elapsed_time
+        distance = moving_data.moving_distance
         return {
-            "distance": moving_data.moving_distance,
+            "distance": distance,
             "moving_time": datetime.timedelta(seconds=moving_time),
             "elapsed_time": datetime.timedelta(seconds=elapsed_time),
-            "average_speed": (
-                moving_data.moving_distance / moving_time if moving_time else 0
-            ),
+            "average_speed": distance / moving_time if moving_time else 0,
         }
 
     def to_namedtuple(self, run_from="gpx"):
