@@ -248,6 +248,29 @@ class Track:
                 moving_time += self._calc_moving_time(s.points, 10)
         gpx.simplify()
         if self.length == 0:
+            # Indoor/treadmill runs have no track points (or identical
+            # start/end points), so length_2d() is 0. Initialize
+            # moving_dict here because _load_gpx_extensions_data reads it;
+            # it is normally assigned below for outdoor tracks.
+            # Indoor runs only carry a start/end timestamp (points, if any,
+            # share the same coordinate), so fall back to the elapsed time
+            # between start and end when no moving time could be computed.
+            if moving_time == 0 and self.start_time and self.end_time:
+                moving_time = (
+                    self.end_time - self.start_time
+                ).total_seconds()
+            self.moving_dict = self._get_moving_data(gpx, moving_time)
+            self.elevation_gain = 0
+            self.polyline_str = ""
+            self.polyline_container = []
+            self.polylines = []
+            self.start_latlng = None
+            self.average_heartrate = None
+            # No usable coordinates for indoor runs; fall back to the default
+            # (Asia/Shanghai) timezone conversion.
+            self.start_time_local, self.end_time_local = parse_datetime_to_local(
+                self.start_time, self.end_time, None
+            )
             self._load_gpx_extensions_data(gpx)
             return
         polyline_container = []

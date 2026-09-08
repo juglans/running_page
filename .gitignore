@@ -20,7 +20,11 @@ _site/
 
 config.yaml
 .venv/
+venv/
 .pdm-python
+
+# local sync state
+imported.json
 
 route.png
 route.svg
