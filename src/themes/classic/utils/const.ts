@@ -224,14 +224,16 @@ export const WALKING_COLOR = HIKING_COLOR;
 export const SWIMMING_COLOR = 'rgb(255,51,51)';
 export const INDOOR_COLOR = '#8899aa';
 
-// map tiles vendor, maptiler or mapbox or stadiamaps
+// map tiles vendor, mapcn (Carto) or mapcn_openfreemap (OpenFreeMap) or maptiler or mapbox or stadiamaps
+// mapcn / mapcn_openfreemap are free and need no token; OpenFreeMap is hosted on
+// Cloudflare and is generally reachable from mainland China.
 // if you want to use maptiler, set the access token in MAP_TILE_ACCESS_TOKEN
-export const MAP_TILE_VENDOR = 'mapcn';
+export const MAP_TILE_VENDOR = 'mapcn_openfreemap';
 
 // map tiles style name, see MAP_TILE_STYLES for more details
-// light: 'osm-bright' (voyager, colorful) or 'osm-liberty' (positron, minimal light gray)
-export const MAP_TILE_STYLE_LIGHT = 'osm-liberty';
-export const MAP_TILE_STYLE_DARK = 'dark-matter';
+// OpenFreeMap light: 'positron' (minimal light gray), 'liberty' or 'bright' (colorful)
+export const MAP_TILE_STYLE_LIGHT = 'positron';
+export const MAP_TILE_STYLE_DARK = 'dark';
 
 // access token. you can apply a new one, it's free.
 // maptiler: Gt5R0jT8tuIYxW6sNrAg | sign up at https://cloud.maptiler.com/auth/widget
@@ -248,10 +250,13 @@ export const MAP_TILE_STYLES = {
     'dark-matter':
       'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
   },
-  // Alternative free tile providers for regions where Carto may be blocked
+  // OpenFreeMap: free, tokenless, hosted on Cloudflare (reachable from China)
+  // https://openfreemap.org/  |  styles: positron, bright, liberty, dark
   mapcn_openfreemap: {
-    'osm-bright': 'https://tiles.openfreemap.org/styles/bright',
-    'dark-matter': 'https://tiles.openfreemap.org/styles/dark',
+    positron: 'https://tiles.openfreemap.org/styles/positron',
+    bright: 'https://tiles.openfreemap.org/styles/bright',
+    liberty: 'https://tiles.openfreemap.org/styles/liberty',
+    dark: 'https://tiles.openfreemap.org/styles/dark',
   },
   mapcn_maptiler_free: {
     // Use free, tokenless styles to avoid requiring an API key
@@ -313,11 +318,17 @@ export const getMapTileVendorStyles = (
 
 // Configuration validation
 if (typeof window !== 'undefined') {
+  // Tokenless vendors (Carto / OpenFreeMap) — warn if a token was pointlessly set
+  const TOKENLESS_VENDORS = ['mapcn', 'mapcn_openfreemap'];
+
   // Validate token requirements
-  if (MAP_TILE_VENDOR === 'mapcn' && MAP_TILE_ACCESS_TOKEN !== '') {
+  if (
+    TOKENLESS_VENDORS.includes(MAP_TILE_VENDOR) &&
+    MAP_TILE_ACCESS_TOKEN !== ''
+  ) {
     console.warn(
-      '⚠️ MapCN (Carto) does not require an access token.\n' +
-        '💡 You can set MAP_TILE_ACCESS_TOKEN = "" in src/utils/const.ts'
+      `⚠️ ${MAP_TILE_VENDOR} does not require an access token.\n` +
+        '💡 You can set MAP_TILE_ACCESS_TOKEN = "" in src/themes/classic/utils/const.ts'
     );
   }
 
@@ -344,16 +355,20 @@ if (typeof window !== 'undefined') {
     );
   }
 
-  // Success message for correct MapCN configuration
+  // Success message for correct tokenless vendor configuration
+  const TOKENLESS_INFO: Record<string, string> = {
+    mapcn:
+      '✅ Using MapCN (Carto Basemaps) - Free, no token required!\n' +
+      '📖 Attribution: Map tiles © CARTO, Map data © OpenStreetMap contributors',
+    mapcn_openfreemap:
+      '✅ Using OpenFreeMap - Free, no token required!\n' +
+      '📖 Attribution: Map data © OpenStreetMap contributors, map hosting by OpenFreeMap',
+  };
   if (
-    MAP_TILE_VENDOR === 'mapcn' &&
+    TOKENLESS_VENDORS.includes(MAP_TILE_VENDOR) &&
     MAP_TILE_ACCESS_TOKEN === '' &&
     vendorStyles?.[MAP_TILE_STYLE_LIGHT]
   ) {
-    console.info(
-      '✅ Using MapCN (Carto Basemaps) - Free, no token required!\n' +
-        '📖 Attribution: Map tiles © CARTO, Map data © OpenStreetMap contributors\n' +
-        '📚 See docs/CARTO_TERMS.md for usage terms'
-    );
+    console.info(TOKENLESS_INFO[MAP_TILE_VENDOR]);
   }
 }
