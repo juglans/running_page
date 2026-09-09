@@ -30,3 +30,8 @@ route.png
 route.svg
 
 .env
+
+# downloaded raw track exports (regenerated from Keep via keep_sync.py)
+GPX_OUT/*.gpx
+TCX_OUT/*.tcx
+FIT_OUT/*.fit
