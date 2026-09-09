@@ -186,9 +186,7 @@ const RunMap = ({
               ? 'Carto Basemaps (MapCN)'
               : 'OpenFreeMap';
           const fallback =
-            MAP_TILE_VENDOR === 'mapcn'
-              ? 'mapcn_openfreemap'
-              : 'mapcn';
+            MAP_TILE_VENDOR === 'mapcn' ? 'mapcn_openfreemap' : 'mapcn';
           console.warn(`⚠️ ${vendorName} failed to load.`);
           console.info('💡 Possible solutions:');
           console.info('   1. Check your internet connection');
@@ -261,7 +259,10 @@ const RunMap = ({
     (ref: MapRef) => {
       if (ref !== null) {
         const map = ref.getMap();
-        if (map && IS_CHINESE) {
+        // MapboxLanguage only rewrites label fields on Mapbox streets styles;
+        // on OpenMapTiles styles (Carto / OpenFreeMap) findStreetsSource() throws.
+        // Those styles already expose localized `name` values in the tiles.
+        if (map && IS_CHINESE && MAP_TILE_VENDOR === 'mapbox') {
           map.addControl(new MapboxLanguage({ defaultLanguage: 'zh-Hans' }));
         }
         // all style resources have been downloaded
