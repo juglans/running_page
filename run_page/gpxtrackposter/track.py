@@ -255,7 +255,7 @@ class Track:
         # Compute elapsed time from the ORIGINAL dense track points, before
         # gpx.simplify() thins them out (which inflates point-to-point time
         # gaps). Used for a stable pace = distance / total time.
-        elapsed_raw, _paused_raw = self._calc_elapsed_and_paused(gpx)
+        elapsed_raw, paused_raw = self._calc_elapsed_and_paused(gpx)
         gpx.simplify()
         if self.length == 0:
             # Indoor/treadmill runs have no track points (or identical
