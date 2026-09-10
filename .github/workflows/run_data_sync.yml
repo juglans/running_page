@@ -274,13 +274,18 @@ jobs:
         run: |
           warp-cli --accept-tos disconnect
 
+      - name: Report track file size
+        run: |
+          echo "GPX files: $(ls GPX_OUT/*.gpx 2>/dev/null | wc -l)"
+          du -sh GPX_OUT
+
       - name: Push new runs
         if: env.SAVE_DATA_IN_GITHUB_CACHE != 'true'
         run: |
           git config --local user.email 'action@github.com'
           git config --local user.name 'GitHub Action'
-          git pull --rebase origin master
-          git add run_page/data.db run_page/garmin_synced_ids.txt src/static/activities.json assets
+          git pull --rebase --autostash origin master
+          git add run_page/data.db run_page/garmin_synced_ids.txt src/static/activities.json assets GPX_OUT
           git commit -m 'update new runs' || echo 'nothing to commit'
           git push
 
