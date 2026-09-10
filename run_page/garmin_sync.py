@@ -20,7 +20,7 @@ from lxml import etree
 import aiofiles
 import garth
 import httpx
-from config import FOLDER_DICT, JSON_FILE, SQL_FILE
+from config import FOLDER_DICT, JSON_FILE, SQL_FILE, SYNCED_IDS_FILE
 from garmin_device_adaptor import process_garmin_data
 from utils import make_activities_file
 
@@ -329,6 +329,23 @@ def get_downloaded_ids(folder):
     return [i.split(".")[0] for i in os.listdir(folder) if not i.startswith(".")]
 
 
+def get_synced_ids(synced_file):
+    """
+    Read activity ids downloaded by previous runs.
+    CI starts with an empty GPX_OUT (files are gitignored), so the folder alone
+    cannot tell us what has already been synced.
+    """
+    if not os.path.exists(synced_file):
+        return []
+    with open(synced_file, "r") as f:
+        return [line.strip() for line in f if line.strip()]
+
+
+def save_synced_ids(synced_file, ids):
+    with open(synced_file, "w") as f:
+        f.write("\n".join(sorted(set(ids))) + "\n")
+
+
 def get_garmin_summary_infos(activity_summary, activity_id):
     garmin_summary_infos = {}
     try:
@@ -362,17 +379,32 @@ async def download_new_activities(
 
     to_generate_garmin_id2title = {}
     garmin_summary_infos_dict = {}
-    for id in to_generate_garmin_ids:
+
+    async def fetch_summary(activity_id):
         try:
-            activity_summary = await client.get_activity_summary(id)
-            activity_title = activity_summary.get("activityName", "")
-            to_generate_garmin_id2title[id] = activity_title
-            garmin_summary_infos_dict[id] = get_garmin_summary_infos(
-                activity_summary, id
-            )
+            activity_summary = await client.get_activity_summary(activity_id)
         except Exception as e:
-            print(f"Failed to get activity summary {id}: {str(e)}")
-            continue
+            print(f"Failed to get activity summary {activity_id}: {str(e)}")
+            return
+        to_generate_garmin_id2title[activity_id] = activity_summary.get(
+            "activityName", ""
+        )
+        garmin_summary_infos_dict[activity_id] = get_garmin_summary_infos(
+            activity_summary, activity_id
+        )
+
+    summary_start_time = time.time()
+    # 5 is enough to speed up a full re-sync while staying under Garmin's
+    # rate limit; anything that still fails is retried on the next run because
+    # only successfully downloaded ids get recorded.
+    await gather_with_concurrency(
+        5,
+        [fetch_summary(id) for id in to_generate_garmin_ids],
+    )
+    print(
+        f"Summary finished {len(to_generate_garmin_id2title)}/{len(to_generate_garmin_ids)}. "
+        f"Elapsed {time.time()-summary_start_time} seconds"
+    )
 
     start_time = time.time()
     await gather_with_concurrency(
@@ -435,7 +467,10 @@ if __name__ == "__main__":
     # make gpx or tcx dir
     if not os.path.exists(folder):
         os.mkdir(folder)
-    downloaded_ids = get_downloaded_ids(folder)
+    downloaded_ids = list(
+        set(get_downloaded_ids(folder)) | set(get_synced_ids(SYNCED_IDS_FILE))
+    )
+    print(f"{len(downloaded_ids)} activities already synced")
 
     if file_type == "fit":
         gpx_folder = FOLDER_DICT["gpx"]
@@ -469,4 +504,19 @@ if __name__ == "__main__":
         )
     make_activities_file(
         SQL_FILE, folder, JSON_FILE, file_suffix=file_type, activity_title_dict=id2title
+    )
+
+    # Only ids that really landed on disk are remembered, so a transient
+    # network error does not make us skip that activity forever.
+    downloaded_ok = [
+        i for i in new_ids if os.path.exists(os.path.join(folder, f"{i}.{file_type}"))
+    ]
+    if len(downloaded_ok) < len(new_ids):
+        print(
+            f"{len(new_ids) - len(downloaded_ok)} activities failed to download, "
+            "they will be retried on the next run"
+        )
+    save_synced_ids(SYNCED_IDS_FILE, set(downloaded_ids) | set(downloaded_ok))
+    print(
+        f"{len(downloaded_ids) + len(downloaded_ok)} activities now tracked as synced"
     )

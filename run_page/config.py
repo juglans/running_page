@@ -19,6 +19,9 @@ FOLDER_DICT = {
 SQL_FILE = os.path.join(parent, "run_page", "data.db")
 JSON_FILE = os.path.join(parent, "src", "static", "activities.json")
 SYNCED_FILE = os.path.join(parent, "imported.json")
+# Track already downloaded Garmin activity ids so CI (which starts with an
+# empty GPX_OUT) can still sync incrementally.
+SYNCED_IDS_FILE = os.path.join(parent, "run_page", "garmin_synced_ids.txt")
 
 
 BASE_TIMEZONE = "Asia/Shanghai"
